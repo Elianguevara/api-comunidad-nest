@@ -97,9 +97,9 @@ export class PetitionsService {
       description: dto.description,
       dateSince: dto.dateSince ? new Date(dto.dateSince) : new Date(),
       dateUntil: dto.dateUntil ? new Date(dto.dateUntil) : undefined,
-      typePetition: { idTypePetition: dto.typePetitionId } as any,
-      city: { idCity: dto.cityId } as any,
-      profession: { idProfession: dto.professionId } as any,
+      typePetition: { idTypePetition: dto.idTypePetition } as any, // <--- CAMBIADO
+      city: { idCity: dto.idCity } as any,                         // <--- CAMBIADO
+      profession: { idProfession: dto.idProfession } as any,       // <--- CAMBIADO
       customer: { idCustomer: customer.idCustomer } as any,
       state: initialState,
     });

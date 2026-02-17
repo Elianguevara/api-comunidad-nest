@@ -1,18 +1,17 @@
 import { IsNumber, IsString, IsOptional, IsDateString } from 'class-validator';
 
-// Equivalente a PetitionRequest.java
 export class CreatePetitionDto {
   @IsNumber()
-  typePetitionId: number;
+  idTypePetition: number; // <--- Cambiado
 
   @IsNumber()
-  cityId: number;
+  idCity: number;         // <--- Cambiado
 
   @IsString()
   description: string;
 
   @IsNumber()
-  professionId: number;
+  idProfession: number;   // <--- Cambiado
 
   @IsOptional()
   @IsDateString()
@@ -21,9 +20,13 @@ export class CreatePetitionDto {
   @IsOptional()
   @IsDateString()
   dateUntil?: string;
+
+  // React también está mandando imageUrl (Opcional)
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 }
 
-// Equivalente a PetitionResponse.java (Simplificado por ahora)
 export class PetitionResponseDto {
   idPetition: number;
   description: string;
