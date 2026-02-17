@@ -1,20 +1,21 @@
 import { Controller, Get, Put, Body, Param, UseGuards, Request, ParseIntPipe } from '@nestjs/common';
+import { ProvidersService } from './providers.service';
+import { ProviderProfileRequestDto } from './dto/provider-profile.request.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { UsersService } from './users.service';
-import { UpdateProviderProfileDto } from './dto/user-profile.dto';
 
-@Controller('providers') // Rutas: /api/providers
+@Controller('providers')
 @UseGuards(AuthGuard('jwt'))
 export class ProvidersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly providerService: ProvidersService) {}
 
   @Put('profile')
-  updateProviderProfile(@Request() req, @Body() data: UpdateProviderProfileDto) {
-    return this.usersService.updateProviderProfile(req.user.email, data);
+  updateProfile(@Request() req, @Body() request: ProviderProfileRequestDto) {
+    this.providerService.updateProfile(req.user.email, request);
+    return { message: "Perfil de proveedor actualizado correctamente." };
   }
 
   @Get(':id')
   getPublicProfile(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.getProviderPublicProfile(id);
+    return this.providerService.getPublicProfile(id);
   }
 }

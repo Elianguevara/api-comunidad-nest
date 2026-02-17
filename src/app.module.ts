@@ -3,10 +3,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+
+// --- Importación de todos tus módulos ---
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { MetadataModule } from './metadata/metadata.module';
 import { PetitionsModule } from './petitions/petitions.module';
+import { PostulationsModule } from './postulations/postulations.module'; // <-- ¡Nuevo!
+import { GradesModule } from './grades/grades.module'; // <-- ¡Nuevo!
 
 @Module({
   imports: [
@@ -31,10 +35,13 @@ import { PetitionsModule } from './petitions/petitions.module';
         synchronize: true, 
       }),
     }),
+    // 3. Registrar los módulos de la aplicación
     UsersModule,
     AuthModule,
     MetadataModule,
     PetitionsModule,
+    PostulationsModule, // <-- ¡Agregado aquí!
+    GradesModule,       // <-- ¡Agregado aquí!
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,41 +1,31 @@
-import { IsString, IsOptional, IsNumber, IsArray } from 'class-validator';
-
-// Coincide con UpdateProfileData
-export class UpdateProfileDto {
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  lastname?: string;
-
-  @IsOptional()
-  @IsString()
-  phone?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  @IsNumber()
-  idProfession?: number;
-
-  @IsOptional()
-  @IsString()
-  profileImage?: string;
+export class StatDTO {
+  label: string;
+  value: string;
 }
 
-// Coincide con UpdateProviderProfileData
-export class UpdateProviderProfileDto {
-  @IsNumber()
-  idProfession: number;
+export class UserProfileResponseDto {
+  id: number;
+  providerId?: number; // Opcional, solo si es proveedor
+  customerId?: number; // Opcional, solo si es cliente
+  name: string;
+  lastname: string;
+  email: string;
+  role: string;
+  profileImage: string | null;
 
-  @IsString()
-  description: string;
+  phone?: string;
+  address?: string;
+  description?: string;
+  profession?: string;
 
-  @IsArray()
-  @IsNumber({}, { each: true })
-  cityIds: number[];
+  stats: StatDTO[];
+}
+
+export class UpdateProfileDto { // Equivalente a UserProfileRequest
+  name?: string;
+  lastname?: string;
+  phone?: string;
+  description?: string;
+  idProfession?: number;
+  profileImage?: string;
 }

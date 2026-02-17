@@ -1,10 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, ManyToOne, ManyToMany, JoinTable } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { User } from './user.entity';
+// Importa estas según tu estructura real:
+import { TypeProvider } from '../../metadata/entities/type-provider.entity';
 import { Profession } from '../../metadata/entities/profession.entity';
-import { City } from '../../metadata/entities/city.entity';
-import { Address } from './address.entity'; // <-- 1. IMPORTAR
+import { Address } from './address.entity';
+import { ProviderCategory } from './provider-category.entity';
+import { ProviderCity } from './provider-city.entity';
 
-@Entity('n_provider')
+@Entity({ name: 'n_provider' })
 export class Provider {
   @PrimaryGeneratedColumn({ name: 'id_provider' })
   idProvider: number;
@@ -13,23 +16,25 @@ export class Provider {
   @JoinColumn({ name: 'user_id', referencedColumnName: 'idUser' })
   user: User;
 
-  // <-- 2. AGREGAR LA RELACIÓN CON LA DIRECCIÓN
-  @OneToOne(() => Address, { cascade: true, nullable: true })
+  @ManyToOne(() => TypeProvider)
+  @JoinColumn({ name: 'id_type_provider' })
+  typeProvider: TypeProvider;
+
+  @ManyToOne(() => Profession)
+  @JoinColumn({ name: 'id_profession' })
+  profession: Profession;
+
+  @OneToOne(() => Address)
   @JoinColumn({ name: 'address_id' })
   address: Address;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @ManyToOne(() => Profession, { nullable: true })
-  @JoinColumn({ name: 'id_profession' })
-  profession: Profession;
+  // Relaciones Inversas (Igual que en Java)
+  @OneToMany(() => ProviderCategory, pc => pc.provider)
+  providerCategories: ProviderCategory[];
 
-  @ManyToMany(() => City)
-  @JoinTable({
-    name: 'n_provider_city',
-    joinColumn: { name: 'id_provider', referencedColumnName: 'idProvider' },
-    inverseJoinColumn: { name: 'id_city', referencedColumnName: 'idCity' }
-  })
-  cities: City[];
+  @OneToMany(() => ProviderCity, pc => pc.provider)
+  providerCities: ProviderCity[];
 }

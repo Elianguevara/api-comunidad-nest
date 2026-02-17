@@ -1,16 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-
-// Importamos las entidades de este mismo módulo
-import { TypePetition } from './type-petition.entity';
-import { PetitionState } from './petition-state.entity';
-
-// Importamos las dependencias de otros módulos
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { TypePetition } from './type-petition.entity'; // Asumo que lo tienes
 import { Customer } from '../../users/entities/customer.entity';
 import { City } from '../../metadata/entities/city.entity';
 import { Profession } from '../../metadata/entities/profession.entity';
-import { TypeProvider } from '../../metadata/entities/type-provider.entity';
+import { PetitionState } from './petition-state.entity';
 
-@Entity('n_petition')
+@Entity({ name: 'n_petition' })
 export class Petition {
   @PrimaryGeneratedColumn({ name: 'id_petition' })
   idPetition: number;
@@ -34,28 +29,21 @@ export class Petition {
   @JoinColumn({ name: 'id_profession' })
   profession: Profession;
 
-  @ManyToOne(() => TypeProvider)
-  @JoinColumn({ name: 'id_type_provider' })
-  typeProvider: TypeProvider;
+  // Si tienes la entidad TypeProvider, puedes descomentarla:
+  // @ManyToOne(() => TypeProvider)
+  // @JoinColumn({ name: 'id_type_provider' })
+  // typeProvider: TypeProvider;
 
   @ManyToOne(() => PetitionState)
   @JoinColumn({ name: 'id_state' })
   state: PetitionState;
 
-  // En MySQL, LocalDate de Java se mapea como 'date'
   @Column({ name: 'date_since', type: 'date', nullable: true })
   dateSince: Date;
 
   @Column({ name: 'date_until', type: 'date', nullable: true })
   dateUntil: Date;
 
-  @Column({ name: 'is_deleted', default: false })
+  @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted: boolean;
-
-  // Estos dos campos reemplazan tu "AuditableEntity" de Java
-  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', nullable: true })
-  updatedAt: Date;
 }
