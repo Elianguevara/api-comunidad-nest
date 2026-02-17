@@ -1,3 +1,6 @@
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, IsString } from 'class-validator';
+
 export class StatDTO {
   label: string;
   value: string;
@@ -22,10 +25,28 @@ export class UserProfileResponseDto {
 }
 
 export class UpdateProfileDto { // Equivalente a UserProfileRequest
+  @IsOptional()
+  @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
   lastname?: string;
+
+  @IsOptional()
+  @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
   description?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
   idProfession?: number;
+
+  @IsOptional()
+  @IsString()
   profileImage?: string;
 }

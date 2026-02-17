@@ -155,6 +155,52 @@ export class GradesService {
     };
   }
 
+  async getCustomerReviews(idCustomer: number, page: number, size: number, sort: string) {
+    const customer = await this.customerRepo.findOne({
+      where: { idCustomer },
+    });
+    if (!customer) throw new NotFoundException('Cliente no encontrado.');
+
+    const [sortFieldRaw, sortDirectionRaw] = sort.split(',');
+    const sortFieldMap: Record<string, string> = {
+      idGradeCustomer: 'idGradeCustomer',
+      rating: 'rating',
+      date: 'createdDate',
+      createdDate: 'createdDate',
+    };
+    const orderField = sortFieldMap[sortFieldRaw] || 'idGradeCustomer';
+    const orderDirection = sortDirectionRaw?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    const [reviews, total] = await this.gradeCustomerRepo.findAndCount({
+      where: {
+        customer: { idCustomer },
+        isVisible: true,
+      },
+      relations: ['provider', 'provider.user'],
+      order: { [orderField]: orderDirection } as any,
+      skip: page * size,
+      take: size,
+    });
+
+    const content: ReviewResponseDto[] = reviews.map(r => ({
+      idReview: r.idGradeCustomer,
+      reviewerName: r.provider?.user
+        ? `${r.provider.user.name} ${r.provider.user.lastname}`.trim()
+        : 'Usuario',
+      rating: r.rating,
+      comment: r.comment,
+      date: r.createdDate || new Date(),
+    }));
+
+    return {
+      content,
+      totalPages: Math.ceil(total / size),
+      totalElements: total,
+      size,
+      number: page,
+    };
+  }
+
   async hasCustomerRatedProvider(email: string, providerId: number, petitionId: number): Promise<boolean> {
     const user = await this.userRepo.findOne({ where: { email } });
     if (!user) return false;

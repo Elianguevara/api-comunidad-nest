@@ -41,6 +41,16 @@ export class GradesController {
     return this.gradesService.getProviderReviews(providerId, page, size);
   }
 
+  @Get('customer/:idCustomer')
+  getCustomerReviews(
+    @Param('idCustomer', ParseIntPipe) idCustomer: number,
+    @Query('page', new DefaultValuePipe(0), ParseIntPipe) page: number,
+    @Query('size', new DefaultValuePipe(5), ParseIntPipe) size: number,
+    @Query('sort', new DefaultValuePipe('idGradeCustomer,desc')) sort: string,
+  ) {
+    return this.gradesService.getCustomerReviews(idCustomer, page, size, sort);
+  }
+
   @Get('check-rated/:providerId')
   checkIfRated(
     @Request() req,

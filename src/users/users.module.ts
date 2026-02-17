@@ -4,10 +4,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 // Servicios
 import { UsersService } from './users.service';
 import { ProvidersService } from './providers.service'; // <-- 1. Importar el servicio
+import { CustomersService } from './customers.service';
 
 // Controladores
 import { UsersController } from './users.controller';
 import { ProvidersController } from './providers.controller';
+import { CustomersController } from './customers.controller';
 
 // Entidades propias del módulo
 import { User } from './entities/user.entity';
@@ -22,6 +24,8 @@ import { ProviderCategory } from './entities/provider-category.entity';
 import { Profession } from '../metadata/entities/profession.entity';
 import { City } from '../metadata/entities/city.entity';
 import { GradeProvider } from '../grades/entities/grade-provider.entity';
+import { GradeCustomer } from '../grades/entities/grade-customer.entity';
+import { Petition } from '../petitions/entities/petition.entity';
 
 @Module({
   imports: [
@@ -35,17 +39,21 @@ import { GradeProvider } from '../grades/entities/grade-provider.entity';
       ProviderCategory, // <-- Agregado
       Profession,       // <-- Agregado
       City,             // <-- Agregado
-      GradeProvider     // <-- Agregado para el cálculo de promedios
+      GradeProvider,    // <-- Agregado para el cálculo de promedios
+      GradeCustomer,
+      Petition,
     ])
   ],
   controllers: [
     UsersController, 
-    ProvidersController
+    ProvidersController,
+    CustomersController,
   ],
   providers: [
     UsersService,
-    ProvidersService // <-- 2. Registrar el servicio aquí
+    ProvidersService, // <-- 2. Registrar el servicio aquí
+    CustomersService,
   ],
-  exports: [UsersService, ProvidersService, TypeOrmModule],
+  exports: [UsersService, ProvidersService, CustomersService, TypeOrmModule],
 })
 export class UsersModule {}

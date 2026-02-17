@@ -1,5 +1,6 @@
 export class PetitionResponseDto {
   idPetition: number;
+  customerId: number;
   description: string;
   typePetitionName: string;
   professionName: string;
@@ -7,6 +8,7 @@ export class PetitionResponseDto {
   dateSince: Date | string;
   dateUntil: Date | string;
   customerName: string;
+  customerImage: string | null;
   cityName: string;
   imageUrl: string | null;
 }

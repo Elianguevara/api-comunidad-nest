@@ -38,7 +38,7 @@ export class Petition {
   @JoinColumn({ name: 'id_state' })
   state: PetitionState;
 
-  @Column({ name: 'date_since', type: 'date', nullable: true })
+  @Column({ name: 'date_since', type: 'datetime', nullable: true })
   dateSince: Date;
 
   @Column({ name: 'date_until', type: 'date', nullable: true })

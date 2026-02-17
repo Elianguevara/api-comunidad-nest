@@ -9,8 +9,8 @@ export class ProvidersController {
   constructor(private readonly providerService: ProvidersService) {}
 
   @Put('profile')
-  updateProfile(@Request() req, @Body() request: ProviderProfileRequestDto) {
-    this.providerService.updateProfile(req.user.email, request);
+  async updateProfile(@Request() req, @Body() request: ProviderProfileRequestDto) {
+    await this.providerService.updateProfile(req.user.email, request);
     return { message: "Perfil de proveedor actualizado correctamente." };
   }
 

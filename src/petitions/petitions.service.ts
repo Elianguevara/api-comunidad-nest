@@ -212,6 +212,7 @@ export class PetitionsService {
 
     return {
       idPetition: petition.idPetition,
+      customerId: petition.customer ? petition.customer.idCustomer : 0,
       description: petition.description,
       typePetitionName: petition.typePetition?.typePetitionName || "Sin categoría",
       professionName: petition.profession?.name || "Profesión no especificada",
@@ -219,6 +220,7 @@ export class PetitionsService {
       dateSince: petition.dateSince,
       dateUntil: petition.dateUntil,
       customerName: petition.customer?.user ? `${petition.customer.user.name} ${petition.customer.user.lastname}` : "Usuario Desconocido",
+      customerImage: petition.customer?.user?.profileImage || null,
       cityName: petition.city?.name || "Ubicación no especificada",
       imageUrl: attachments.length > 0 ? attachments[0].url : null,
     };

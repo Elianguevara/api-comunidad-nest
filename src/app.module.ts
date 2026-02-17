@@ -34,6 +34,7 @@ import { MediaModule } from './media/media.module';
         database: configService.get<string>('DB_DATABASE'),
         autoLoadEntities: true,
         synchronize: true, // Solo desarrollo
+        timezone: '-03:00', // Fuerza a Mendoza/Argentina
       }),
     }),
     // 3. Registrar los módulos de la aplicación
