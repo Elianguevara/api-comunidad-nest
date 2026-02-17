@@ -1,27 +1,41 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Put, 
-  Body, 
-  Param, 
-  UseGuards, 
-  Request, 
-  ParseIntPipe 
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
-import { StartConversationRequestDto, MessageRequestDto } from './dto/chat.request.dto';
+import {
+  StartConversationRequestDto,
+  MessageRequestDto,
+} from './dto/chat.request.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { ChatGateway } from './chat.gateway';
 
 @Controller('v1/chat/conversations')
 @UseGuards(AuthGuard('jwt'))
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly chatGateway: ChatGateway,
+  ) {}
 
   // 1. Obtener o crear chat
   @Post()
-  startConversation(@Request() req, @Body() request: StartConversationRequestDto) {
-    return this.chatService.createOrGetConversation(req.user.email, request.petitionId, request.providerId);
+  startConversation(
+    @Request() req,
+    @Body() request: StartConversationRequestDto,
+  ) {
+    return this.chatService.createOrGetConversation(
+      req.user.email,
+      request.petitionId,
+      request.providerId,
+    );
   }
 
   // 2. Mis conversaciones (Bandeja de entrada)
@@ -32,24 +46,43 @@ export class ChatController {
 
   // 3. Ver historial de mensajes de un chat específico
   @Get(':conversationId/messages')
-  getMessages(@Request() req, @Param('conversationId', ParseIntPipe) conversationId: number) {
-    return this.chatService.getConversationMessages(req.user.email, conversationId);
+  getMessages(
+    @Request() req,
+    @Param('conversationId', ParseIntPipe) conversationId: number,
+  ) {
+    return this.chatService.getConversationMessages(
+      req.user.email,
+      conversationId,
+    );
   }
 
   // 4. Enviar mensaje
   @Post(':conversationId/messages')
-  sendMessage(
+  async sendMessage(
     @Request() req,
     @Param('conversationId', ParseIntPipe) conversationId: number,
-    @Body() request: MessageRequestDto
+    @Body() request: MessageRequestDto,
   ) {
-    return this.chatService.sendMessage(req.user.email, conversationId, request.content);
+    const message = await this.chatService.sendMessage(
+      req.user.email,
+      conversationId,
+      request.content,
+    );
+
+    const participantIds =
+      await this.chatService.getConversationParticipantIds(conversationId);
+    this.chatGateway.emitNewMessage(participantIds, conversationId, message);
+
+    return message;
   }
 
   // 5. Marcar mensajes de una conversación como leídos
   @Put(':conversationId/read')
-  async markAsRead(@Request() req, @Param('conversationId', ParseIntPipe) conversationId: number) {
+  async markAsRead(
+    @Request() req,
+    @Param('conversationId', ParseIntPipe) conversationId: number,
+  ) {
     await this.chatService.markMessagesAsRead(req.user.email, conversationId);
-    return { message: "Mensajes marcados como leídos" }; // El frontend suele esperar un 200 OK con o sin body
+    return { message: 'Mensajes marcados como leídos' }; // El frontend suele esperar un 200 OK con o sin body
   }
 }

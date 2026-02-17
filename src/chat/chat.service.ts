@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
 
@@ -11,22 +16,30 @@ import { Petition } from '../petitions/entities/petition.entity';
 import { Postulation } from '../postulations/entities/postulation.entity';
 import { UserRole } from '../users/entities/user-role.entity';
 
-import { ConversationResponseDto, MessageResponseDto } from './dto/chat.response.dto';
+import {
+  ConversationResponseDto,
+  MessageResponseDto,
+} from './dto/chat.response.dto';
 
 @Injectable()
 export class ChatService {
   constructor(
-    @InjectRepository(Conversation) private conversationRepo: Repository<Conversation>,
-    @InjectRepository(ConversationParticipant) private participantRepo: Repository<ConversationParticipant>,
+    @InjectRepository(Conversation)
+    private conversationRepo: Repository<Conversation>,
+    @InjectRepository(ConversationParticipant)
+    private participantRepo: Repository<ConversationParticipant>,
     @InjectRepository(Message) private messageRepo: Repository<Message>,
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(Petition) private petitionRepo: Repository<Petition>,
     @InjectRepository(Provider) private providerRepo: Repository<Provider>,
-    @InjectRepository(Postulation) private postulationRepo: Repository<Postulation>,
+    @InjectRepository(Postulation)
+    private postulationRepo: Repository<Postulation>,
     @InjectRepository(UserRole) private userRoleRepo: Repository<UserRole>,
   ) {}
 
-  private async isConversationActive(conversation: Conversation): Promise<boolean> {
+  private async isConversationActive(
+    conversation: Conversation,
+  ): Promise<boolean> {
     const petition = conversation.petition;
     if (!petition || !petition.state) return false;
 
@@ -37,37 +50,61 @@ export class ChatService {
     if (state === 'ADJUDICADA') {
       const winnerPostulation = await this.postulationRepo.findOne({
         where: { petition: { idPetition: petition.idPetition }, winner: true },
-        relations: ['provider', 'provider.user']
+        relations: ['provider', 'provider.user'],
       });
 
       if (winnerPostulation && winnerPostulation.provider?.user) {
         const winnerUserId = winnerPostulation.provider.user.idUser;
         const isWinnerInChat = await this.participantRepo.count({
-          where: { conversation: { idConversation: conversation.idConversation }, user: { idUser: winnerUserId } }
+          where: {
+            conversation: { idConversation: conversation.idConversation },
+            user: { idUser: winnerUserId },
+          },
         });
         return isWinnerInChat > 0;
       }
       return false;
     }
 
-    return true; 
+    return true;
   }
 
-  async createOrGetConversation(email: string, petitionId: number, providerId: number): Promise<ConversationResponseDto> {
+  async createOrGetConversation(
+    email: string,
+    petitionId: number,
+    providerId: number,
+  ): Promise<ConversationResponseDto> {
     const currentUser = await this.userRepo.findOne({ where: { email } });
     if (!currentUser) throw new NotFoundException('Usuario no encontrado');
 
-    const provider = await this.providerRepo.findOne({ where: { idProvider: providerId }, relations: ['user'] });
+    const provider = await this.providerRepo.findOne({
+      where: { idProvider: providerId },
+      relations: ['user'],
+    });
     if (!provider) throw new NotFoundException('Proveedor no encontrado');
 
     const targetUser = provider.user;
 
-    const petition = await this.petitionRepo.findOne({ where: { idPetition: petitionId }, relations: ['state'] });
+    const petition = await this.petitionRepo.findOne({
+      where: { idPetition: petitionId },
+      relations: ['state'],
+    });
     if (!petition) throw new NotFoundException('Petición no encontrada');
 
-    let conversation = await this.conversationRepo.createQueryBuilder('c')
-      .innerJoin('n_conversation_participants', 'cp1', 'cp1.conversation_id = c.id_conversation AND cp1.user_id = :userId', { userId: currentUser.idUser })
-      .innerJoin('n_conversation_participants', 'cp2', 'cp2.conversation_id = c.id_conversation AND cp2.user_id = :targetId', { targetId: targetUser.idUser })
+    let conversation = await this.conversationRepo
+      .createQueryBuilder('c')
+      .innerJoin(
+        'n_conversation_participants',
+        'cp1',
+        'cp1.conversation_id = c.id_conversation AND cp1.user_id = :userId',
+        { userId: currentUser.idUser },
+      )
+      .innerJoin(
+        'n_conversation_participants',
+        'cp2',
+        'cp2.conversation_id = c.id_conversation AND cp2.user_id = :targetId',
+        { targetId: targetUser.idUser },
+      )
       .where('c.petition_id = :petitionId', { petitionId })
       .getOne();
 
@@ -78,8 +115,14 @@ export class ChatService {
       });
       conversation = await this.conversationRepo.save(conversation);
 
-      const p1 = this.participantRepo.create({ conversation, user: currentUser });
-      const p2 = this.participantRepo.create({ conversation, user: targetUser });
+      const p1 = this.participantRepo.create({
+        conversation,
+        user: currentUser,
+      });
+      const p2 = this.participantRepo.create({
+        conversation,
+        user: targetUser,
+      });
       await this.participantRepo.save([p1, p2]);
     }
 
@@ -87,23 +130,37 @@ export class ChatService {
     return this.mapToConversationResponse(conversation, currentUser.idUser);
   }
 
-  async sendMessage(email: string, conversationId: number, content: string): Promise<MessageResponseDto> {
+  async sendMessage(
+    email: string,
+    conversationId: number,
+    content: string,
+  ): Promise<MessageResponseDto> {
     const currentUser = await this.userRepo.findOne({ where: { email } });
     if (!currentUser) throw new NotFoundException('Usuario no encontrado'); // <-- CORRECCIÓN
 
     const isParticipant = await this.participantRepo.count({
-      where: { conversation: { idConversation: conversationId }, user: { idUser: currentUser.idUser } }
+      where: {
+        conversation: { idConversation: conversationId },
+        user: { idUser: currentUser.idUser },
+      },
     });
-    if (isParticipant === 0) throw new ForbiddenException("No tienes permiso para enviar mensajes en esta conversación.");
+    if (isParticipant === 0)
+      throw new ForbiddenException(
+        'No tienes permiso para enviar mensajes en esta conversación.',
+      );
 
-    const conversation = await this.conversationRepo.findOne({ 
+    const conversation = await this.conversationRepo.findOne({
       where: { idConversation: conversationId },
-      relations: ['petition', 'petition.state']
+      relations: ['petition', 'petition.state'],
     });
-    if (!conversation) throw new NotFoundException("Conversación no encontrada");
+    if (!conversation)
+      throw new NotFoundException('Conversación no encontrada');
 
     const isActive = await this.isConversationActive(conversation);
-    if (!isActive) throw new BadRequestException("Esta conversación ha sido cerrada. La solicitud finalizó o fue adjudicada a otro proveedor.");
+    if (!isActive)
+      throw new BadRequestException(
+        'Esta conversación ha sido cerrada. La solicitud finalizó o fue adjudicada a otro proveedor.',
+      );
 
     const message = this.messageRepo.create({
       conversation,
@@ -117,20 +174,30 @@ export class ChatService {
     return this.mapToMessageResponse(savedMsg, currentUser.idUser);
   }
 
-  async getUserConversations(email: string): Promise<ConversationResponseDto[]> {
+  async getUserConversations(
+    email: string,
+  ): Promise<ConversationResponseDto[]> {
     const currentUser = await this.userRepo.findOne({ where: { email } });
     if (!currentUser) throw new NotFoundException('Usuario no encontrado');
 
     const participants = await this.participantRepo.find({
       where: { user: { idUser: currentUser.idUser } },
-      relations: ['conversation', 'conversation.petition', 'conversation.petition.state']
+      relations: [
+        'conversation',
+        'conversation.petition',
+        'conversation.petition.state',
+      ],
     });
 
     // CORRECCIÓN: Filtramos los que tengan conversación nula para evitar el error de idConversation
-    const validParticipants = participants.filter(p => p.conversation && p.conversation.petition);
+    const validParticipants = participants.filter(
+      (p) => p.conversation && p.conversation.petition,
+    );
 
     const responses = await Promise.all(
-      validParticipants.map(p => this.mapToConversationResponse(p.conversation, currentUser.idUser))
+      validParticipants.map((p) =>
+        this.mapToConversationResponse(p.conversation, currentUser.idUser),
+      ),
     );
 
     return responses.sort((a, b) => {
@@ -140,66 +207,96 @@ export class ChatService {
     });
   }
 
-  async getConversationMessages(email: string, conversationId: number): Promise<MessageResponseDto[]> {
+  async getConversationMessages(
+    email: string,
+    conversationId: number,
+  ): Promise<MessageResponseDto[]> {
     const currentUser = await this.userRepo.findOne({ where: { email } });
     if (!currentUser) throw new NotFoundException('Usuario no encontrado'); // <-- CORRECCIÓN
 
     const isParticipant = await this.participantRepo.count({
-      where: { conversation: { idConversation: conversationId }, user: { idUser: currentUser.idUser } }
+      where: {
+        conversation: { idConversation: conversationId },
+        user: { idUser: currentUser.idUser },
+      },
     });
-    if (isParticipant === 0) throw new ForbiddenException("Acceso denegado a esta conversación.");
+    if (isParticipant === 0)
+      throw new ForbiddenException('Acceso denegado a esta conversación.');
 
     const messages = await this.messageRepo.find({
       where: { conversation: { idConversation: conversationId } },
       relations: ['sender'],
-      order: { createdAt: 'ASC' }
+      order: { createdAt: 'ASC' },
     });
 
-    return messages.map(m => this.mapToMessageResponse(m, currentUser.idUser));
+    return messages.map((m) =>
+      this.mapToMessageResponse(m, currentUser.idUser),
+    );
   }
 
-  async markMessagesAsRead(email: string, conversationId: number): Promise<void> {
+  async markMessagesAsRead(
+    email: string,
+    conversationId: number,
+  ): Promise<void> {
     const currentUser = await this.userRepo.findOne({ where: { email } });
     if (!currentUser) throw new NotFoundException('Usuario no encontrado'); // <-- CORRECCIÓN
 
     const isParticipant = await this.participantRepo.count({
-      where: { conversation: { idConversation: conversationId }, user: { idUser: currentUser.idUser } }
+      where: {
+        conversation: { idConversation: conversationId },
+        user: { idUser: currentUser.idUser },
+      },
     });
-    if (isParticipant === 0) throw new ForbiddenException("Acceso denegado a esta conversación.");
+    if (isParticipant === 0)
+      throw new ForbiddenException('Acceso denegado a esta conversación.');
 
     const unreadMessages = await this.messageRepo.find({
       where: {
         conversation: { idConversation: conversationId },
-        sender: { idUser: Not(currentUser.idUser) }, 
-        isRead: false
-      }
+        sender: { idUser: Not(currentUser.idUser) },
+        isRead: false,
+      },
     });
 
     if (unreadMessages.length > 0) {
-      unreadMessages.forEach(m => m.isRead = true);
+      unreadMessages.forEach((m) => (m.isRead = true));
       await this.messageRepo.save(unreadMessages);
     }
   }
 
+  async getConversationParticipantIds(
+    conversationId: number,
+  ): Promise<number[]> {
+    const participants = await this.participantRepo.find({
+      where: { conversation: { idConversation: conversationId } },
+      relations: ['user'],
+    });
+
+    return participants.map((participant) => participant.user.idUser);
+  }
+
   // --- Mapeadores ---
-  private async mapToConversationResponse(c: Conversation, myUserId: number): Promise<ConversationResponseDto> {
+  private async mapToConversationResponse(
+    c: Conversation,
+    myUserId: number,
+  ): Promise<ConversationResponseDto> {
     // Si por alguna razón entra una conversación nula, lanzamos error controlado
-    if (!c) throw new Error("Conversación no válida");
+    if (!c) throw new Error('Conversación no válida');
 
     const otherParticipantRow = await this.participantRepo.findOne({
-      where: { 
-        conversation: { idConversation: c.idConversation }, 
-        user: { idUser: Not(myUserId) } 
+      where: {
+        conversation: { idConversation: c.idConversation },
+        user: { idUser: Not(myUserId) },
       },
-      relations: ['user']
+      relations: ['user'],
     });
     const otherUser = otherParticipantRow?.user;
 
-    let roleName = "CUSTOMER";
+    let roleName = 'CUSTOMER';
     if (otherUser) {
       const userRoles = await this.userRoleRepo.find({
         where: { user: { idUser: otherUser.idUser } },
-        relations: ['role']
+        relations: ['role'],
       });
       if (userRoles && userRoles.length > 0 && userRoles[0].role) {
         roleName = userRoles[0].role.name.replace('ROLE_', '');
@@ -208,15 +305,15 @@ export class ChatService {
 
     const lastMessage = await this.messageRepo.findOne({
       where: { conversation: { idConversation: c.idConversation } },
-      order: { createdAt: 'DESC' }
+      order: { createdAt: 'DESC' },
     });
 
     const unreadCount = await this.messageRepo.count({
-      where: { 
+      where: {
         conversation: { idConversation: c.idConversation },
         sender: { idUser: Not(myUserId) },
-        isRead: false
-      }
+        isRead: false,
+      },
     });
 
     const isReadOnly = !(await this.isConversationActive(c));
@@ -224,19 +321,26 @@ export class ChatService {
     return {
       idConversation: c.idConversation,
       petitionId: c.petition?.idPetition || 0,
-      petitionTitle: c.petition?.description || "Sin título",
+      petitionTitle: c.petition?.description || 'Sin título',
       otherParticipantId: otherUser ? otherUser.idUser : null,
-      otherParticipantName: otherUser ? `${otherUser.name} ${otherUser.lastname}`.trim() : "Usuario Desconocido",
+      otherParticipantName: otherUser
+        ? `${otherUser.name} ${otherUser.lastname}`.trim()
+        : 'Usuario Desconocido',
       otherParticipantRole: roleName,
       otherParticipantImage: otherUser ? otherUser.profileImage : null,
-      lastMessage: lastMessage ? lastMessage.content : "",
-      updatedAt: lastMessage ? lastMessage.createdAt : (c.createdAt || new Date()),
+      lastMessage: lastMessage ? lastMessage.content : '',
+      updatedAt: lastMessage
+        ? lastMessage.createdAt
+        : c.createdAt || new Date(),
       unreadCount,
       isReadOnly,
     };
   }
 
-  private mapToMessageResponse(m: Message, myUserId: number): MessageResponseDto {
+  private mapToMessageResponse(
+    m: Message,
+    myUserId: number,
+  ): MessageResponseDto {
     return {
       idMessage: m.idMessage,
       content: m.content,

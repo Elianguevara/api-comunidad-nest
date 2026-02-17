@@ -15,3 +15,13 @@ export class MessageRequestDto {
   @IsString()
   content: string;
 }
+
+export class SocketMessageRequestDto {
+  @IsNotEmpty({ message: 'El ID de la conversación es obligatorio' })
+  @IsInt()
+  conversationId: number;
+
+  @IsNotEmpty({ message: 'El contenido no puede estar vacío' })
+  @IsString()
+  content: string;
+}
