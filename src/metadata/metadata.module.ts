@@ -4,9 +4,10 @@ import { Category } from './entities/category.entity';
 import { City } from './entities/city.entity';
 import { Profession } from './entities/profession.entity';
 import { TypeProvider } from './entities/type-provider.entity';
+import { Department } from './entities/department.entity'; // <-- NUEVO
 import { TypePetition } from '../petitions/entities/type-petition.entity';
-import { MetadataController } from './metadata.controller'; // <-- NUEVO
-import { MetadataService } from './metadata.service';       // <-- NUEVO
+import { MetadataController } from './metadata.controller'; 
+import { MetadataService } from './metadata.service';       
 
 @Module({
   imports: [
@@ -15,11 +16,12 @@ import { MetadataService } from './metadata.service';       // <-- NUEVO
       City, 
       Profession, 
       TypeProvider, 
-      TypePetition // <-- Agregamos esta para poder inyectarla en el servicio
+      TypePetition,
+      Department // <-- Agregado para que TypeORM conozca la tabla
     ])
   ],
-  controllers: [MetadataController], // <-- NUEVO
-  providers: [MetadataService],      // <-- NUEVO
+  controllers: [MetadataController], 
+  providers: [MetadataService],      
   exports: [TypeOrmModule],
 })
 export class MetadataModule {}
