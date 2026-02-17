@@ -9,8 +9,11 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { MetadataModule } from './metadata/metadata.module';
 import { PetitionsModule } from './petitions/petitions.module';
-import { PostulationsModule } from './postulations/postulations.module'; // <-- ¡Nuevo!
-import { GradesModule } from './grades/grades.module'; // <-- ¡Nuevo!
+import { PostulationsModule } from './postulations/postulations.module'; 
+import { GradesModule } from './grades/grades.module'; 
+import { ChatModule } from './chat/chat.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { MediaModule } from './media/media.module';
 
 @Module({
   imports: [
@@ -30,9 +33,7 @@ import { GradesModule } from './grades/grades.module'; // <-- ¡Nuevo!
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         autoLoadEntities: true,
-        // IMPORTANTE: synchronize en true crea las tablas automáticamente como hacía Hibernate (update). 
-        // Solo usar en desarrollo.
-        synchronize: true, 
+        synchronize: true, // Solo desarrollo
       }),
     }),
     // 3. Registrar los módulos de la aplicación
@@ -40,8 +41,11 @@ import { GradesModule } from './grades/grades.module'; // <-- ¡Nuevo!
     AuthModule,
     MetadataModule,
     PetitionsModule,
-    PostulationsModule, // <-- ¡Agregado aquí!
-    GradesModule,       // <-- ¡Agregado aquí!
+    PostulationsModule, 
+    GradesModule,       
+    ChatModule,
+    NotificationsModule,
+    MediaModule, 
   ],
   controllers: [AppController],
   providers: [AppService],

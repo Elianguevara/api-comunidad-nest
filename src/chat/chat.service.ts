@@ -119,18 +119,25 @@ export class ChatService {
 
   async getUserConversations(email: string): Promise<ConversationResponseDto[]> {
     const currentUser = await this.userRepo.findOne({ where: { email } });
-    if (!currentUser) throw new NotFoundException('Usuario no encontrado'); // <-- CORRECCIÓN
+    if (!currentUser) throw new NotFoundException('Usuario no encontrado');
 
     const participants = await this.participantRepo.find({
       where: { user: { idUser: currentUser.idUser } },
       relations: ['conversation', 'conversation.petition', 'conversation.petition.state']
     });
 
+    // CORRECCIÓN: Filtramos los que tengan conversación nula para evitar el error de idConversation
+    const validParticipants = participants.filter(p => p.conversation && p.conversation.petition);
+
     const responses = await Promise.all(
-      participants.map(p => this.mapToConversationResponse(p.conversation, currentUser.idUser))
+      validParticipants.map(p => this.mapToConversationResponse(p.conversation, currentUser.idUser))
     );
 
-    return responses.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    return responses.sort((a, b) => {
+      const dateA = a.updatedAt instanceof Date ? a.updatedAt.getTime() : 0;
+      const dateB = b.updatedAt instanceof Date ? b.updatedAt.getTime() : 0;
+      return dateB - dateA;
+    });
   }
 
   async getConversationMessages(email: string, conversationId: number): Promise<MessageResponseDto[]> {
@@ -176,20 +183,26 @@ export class ChatService {
 
   // --- Mapeadores ---
   private async mapToConversationResponse(c: Conversation, myUserId: number): Promise<ConversationResponseDto> {
+    // Si por alguna razón entra una conversación nula, lanzamos error controlado
+    if (!c) throw new Error("Conversación no válida");
+
     const otherParticipantRow = await this.participantRepo.findOne({
-      where: { conversation: { idConversation: c.idConversation }, user: { idUser: Not(myUserId) } },
+      where: { 
+        conversation: { idConversation: c.idConversation }, 
+        user: { idUser: Not(myUserId) } 
+      },
       relations: ['user']
     });
     const otherUser = otherParticipantRow?.user;
 
-    let roleName = "";
+    let roleName = "CUSTOMER";
     if (otherUser) {
       const userRoles = await this.userRoleRepo.find({
         where: { user: { idUser: otherUser.idUser } },
         relations: ['role']
       });
       if (userRoles && userRoles.length > 0 && userRoles[0].role) {
-        roleName = userRoles[0].role.name;
+        roleName = userRoles[0].role.name.replace('ROLE_', '');
       }
     }
 
@@ -210,14 +223,14 @@ export class ChatService {
 
     return {
       idConversation: c.idConversation,
-      petitionId: c.petition.idPetition,
-      petitionTitle: c.petition.description,
+      petitionId: c.petition?.idPetition || 0,
+      petitionTitle: c.petition?.description || "Sin título",
       otherParticipantId: otherUser ? otherUser.idUser : null,
       otherParticipantName: otherUser ? `${otherUser.name} ${otherUser.lastname}`.trim() : "Usuario Desconocido",
       otherParticipantRole: roleName,
       otherParticipantImage: otherUser ? otherUser.profileImage : null,
       lastMessage: lastMessage ? lastMessage.content : "",
-      updatedAt: lastMessage ? lastMessage.createdAt : c.createdAt,
+      updatedAt: lastMessage ? lastMessage.createdAt : (c.createdAt || new Date()),
       unreadCount,
       isReadOnly,
     };

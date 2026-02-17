@@ -9,8 +9,7 @@ import { Provider } from '../users/entities/provider.entity';
 import { User } from '../users/entities/user.entity';
 import { PostulationRequestDto } from './dto/postulation.request.dto';
 import { PostulationResponseDto } from './dto/postulation.response.dto';
-
-// TODO: Importar NotificationService cuando exista su módulo
+import { NotificationsService } from '../notifications/notifications.service'; // <-- IMPORTADO
 
 @Injectable()
 export class PostulationsService {
@@ -21,6 +20,7 @@ export class PostulationsService {
     @InjectRepository(PetitionState) private petitionStateRepo: Repository<PetitionState>,
     @InjectRepository(Provider) private providerRepo: Repository<Provider>,
     @InjectRepository(User) private userRepo: Repository<User>,
+    private readonly notificationService: NotificationsService, // <-- INYECTADO
   ) {}
 
   async createPostulation(email: string, request: PostulationRequestDto): Promise<PostulationResponseDto> {
@@ -35,7 +35,7 @@ export class PostulationsService {
 
     const petition = await this.petitionRepo.findOne({ 
       where: { idPetition: request.idPetition },
-      relations: ['state'] 
+      relations: ['state', 'customer', 'customer.user', 'profession'] // Cargamos relaciones para notificar
     });
     if (!petition) throw new NotFoundException('La petición no existe.');
 
@@ -65,7 +65,8 @@ export class PostulationsService {
 
     const savedPostulation = await this.postulationRepo.save(postulation);
 
-    // TODO: notificationService.notifyNewPostulation(petition);
+    // --- NOTIFICACIÓN AL CLIENTE ---
+    await this.notificationService.notifyNewPostulation(petition);
 
     return this.mapToResponse(savedPostulation, provider, petition, request.budget);
   }
@@ -82,7 +83,14 @@ export class PostulationsService {
   async acceptPostulation(idPostulation: number, clientEmail: string): Promise<void> {
     const winner = await this.postulationRepo.findOne({
       where: { idPostulation },
-      relations: ['petition', 'petition.customer', 'petition.customer.user', 'petition.state']
+      relations: [
+        'petition', 
+        'petition.customer', 
+        'petition.customer.user', 
+        'petition.state',
+        'provider',
+        'provider.user'
+      ]
     });
     if (!winner) throw new NotFoundException('Postulación no encontrada.');
 
@@ -97,44 +105,44 @@ export class PostulationsService {
       throw new BadRequestException(`No se puede adjudicar una solicitud que está ${currentState}`);
     }
 
-    // 3. Aceptar al Ganador (Con validación de nulo)
     const acceptedState = await this.postulationStateRepo.findOne({ where: { name: 'ACEPTADA' } });
-    if (!acceptedState) throw new BadRequestException("Estado 'ACEPTADA' no configurado en la base de datos.");
+    if (!acceptedState) throw new BadRequestException("Estado 'ACEPTADA' no configurado.");
     
     winner.state = acceptedState;
     winner.winner = true;
     await this.postulationRepo.save(winner);
 
-    // 4. Actualizar la Petición a ADJUDICADA (Con validación de nulo)
     const adjudicadaState = await this.petitionStateRepo.findOne({ where: { name: 'ADJUDICADA' } });
-    if (!adjudicadaState) throw new BadRequestException("Estado 'ADJUDICADA' no configurado en la base de datos.");
+    if (!adjudicadaState) throw new BadRequestException("Estado 'ADJUDICADA' no configurado.");
     
     petition.state = adjudicadaState;
     await this.petitionRepo.save(petition);
 
-    // 5. Rechazar automáticamente al resto (Con validación de nulo)
+    // --- NOTIFICACIÓN AL GANADOR ---
+    await this.notificationService.notifyPostulationAccepted(winner);
+
     const rejectedState = await this.postulationStateRepo.findOne({ where: { name: 'RECHAZADA' } });
-    if (!rejectedState) throw new BadRequestException("Estado 'RECHAZADA' no configurado en la base de datos.");
+    if (!rejectedState) throw new BadRequestException("Estado 'RECHAZADA' no configurado.");
 
     const others = await this.postulationRepo.find({
       where: { 
         petition: { idPetition: petition.idPetition },
         idPostulation: Not(winner.idPostulation)
-      }
+      },
+      relations: ['provider', 'provider.user', 'petition']
     });
 
     for (const loser of others) {
       loser.state = rejectedState;
       await this.postulationRepo.save(loser);
-      // TODO: notificationService.notifyPostulationRejected(loser);
+      // --- NOTIFICACIÓN DE RECHAZO A LOS DEMÁS ---
+      await this.notificationService.notifyPostulationRejected(loser);
     }
-
-    // TODO: notificationService.notifyPostulationAccepted(winner);
   }
 
   async getMyPostulations(email: string, page: number, size: number) {
     const user = await this.userRepo.findOne({ where: { email } });
-    if (!user) throw new NotFoundException('Usuario no encontrado.'); // <-- Corrección TypeScript
+    if (!user) throw new NotFoundException('Usuario no encontrado.');
 
     const provider = await this.providerRepo.findOne({ where: { user: { idUser: user.idUser } } });
     if (!provider) throw new ForbiddenException('Perfil de proveedor no encontrado.');
@@ -157,7 +165,7 @@ export class PostulationsService {
 
   async checkIfApplied(idPetition: number, email: string): Promise<boolean> {
     const user = await this.userRepo.findOne({ where: { email } });
-    if (!user) throw new NotFoundException('Usuario no encontrado.'); // <-- Corrección TypeScript
+    if (!user) throw new NotFoundException('Usuario no encontrado.');
 
     const provider = await this.providerRepo.findOne({ where: { user: { idUser: user.idUser } } });
     if (!provider) throw new ForbiddenException('No eres proveedor.');
@@ -172,7 +180,6 @@ export class PostulationsService {
     return count > 0;
   }
 
-  // --- Mapeador ---
   private mapToResponse(p: Postulation, provider: Provider, petition: Petition, originalBudget?: number): PostulationResponseDto {
     const finalRating = 0.0; 
 

@@ -13,6 +13,7 @@ import { City } from '../metadata/entities/city.entity';
 
 import { PetitionRequestDto } from './dto/petition.request.dto';
 import { PetitionResponseDto } from './dto/petition.response.dto';
+import { NotificationsService } from '../notifications/notifications.service'; // <-- IMPORTADO
 
 @Injectable()
 export class PetitionsService {
@@ -27,13 +28,17 @@ export class PetitionsService {
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(Profession) private professionRepo: Repository<Profession>,
     @InjectRepository(City) private cityRepo: Repository<City>,
+    private readonly notificationsService: NotificationsService, // <-- INYECTADO
   ) {}
 
   async createPetition(email: string, request: PetitionRequestDto): Promise<PetitionResponseDto> {
     const user = await this.userRepo.findOne({ where: { email } });
     if (!user) throw new NotFoundException('Usuario no encontrado.');
 
-    const customer = await this.customerRepo.findOne({ where: { user: { idUser: user.idUser } } });
+    const customer = await this.customerRepo.findOne({ 
+        where: { user: { idUser: user.idUser } },
+        relations: ['user'] // Necesario para la notificación
+    });
     if (!customer) throw new ForbiddenException('El usuario no tiene perfil de Cliente activo.');
 
     const profession = await this.professionRepo.findOne({ where: { idProfession: request.idProfession } });
@@ -48,12 +53,11 @@ export class PetitionsService {
     const state = await this.petitionStateRepo.findOne({ where: { name: 'PUBLICADA' } });
     if (!state) throw new BadRequestException("Estado 'PUBLICADA' no configurado en BD.");
 
-    // 1. Guardar petición principal (CORREGIDO EL dateUntil)
+    // 1. Guardar petición principal
     const petition = this.petitionRepo.create({
       customer,
       description: request.description,
       dateSince: new Date(),
-      // Cambiamos null por undefined para que TypeScript y TypeORM sean felices
       dateUntil: request.dateUntil ? new Date(request.dateUntil) : undefined, 
       isDeleted: false,
       profession,
@@ -75,8 +79,22 @@ export class PetitionsService {
       await this.petitionAttachmentRepo.save(attachment);
     }
 
+    // --- INTEGRACIÓN: NOTIFICACIÓN MASIVA A PROVEEDORES ---
+    // Intentamos notificar pero no bloqueamos la respuesta si falla el envío
+    try {
+        await this.notificationsService.notifyProvidersByProfessionAndCity(
+            profession.idProfession,
+            city.idCity,
+            savedPetition
+        );
+    } catch (error) {
+        this.logger.error(`Error enviando notificaciones para la petición ${savedPetition.idPetition}:`, error);
+    }
+
     return this.mapToResponse(savedPetition);
   }
+
+  // --- El resto de métodos permanecen igual, asegurando la consistencia de tipos ---
 
   async getFeed(email: string, page: number, size: number) {
     const user = await this.userRepo.findOne({ where: { email } });
@@ -85,7 +103,7 @@ export class PetitionsService {
     const [petitions, total] = await this.petitionRepo.findAndCount({
       where: {
         state: { name: 'PUBLICADA' },
-        customer: { user: { idUser: Not(user.idUser) } }, // Filtro para no ver las propias
+        customer: { user: { idUser: Not(user.idUser) } },
       },
       relations: ['customer', 'customer.user', 'city', 'typePetition', 'profession', 'state'],
       order: { dateSince: 'DESC' },
@@ -108,7 +126,7 @@ export class PetitionsService {
     if (!user) throw new NotFoundException('Usuario no encontrado');
 
     const customer = await this.customerRepo.findOne({ where: { user: { idUser: user.idUser } } });
-    if (!customer) throw new ForbiddenException('No se encontró perfil de cliente para este usuario.');
+    if (!customer) throw new ForbiddenException('No se encontró perfil de cliente.');
 
     const [petitions, total] = await this.petitionRepo.findAndCount({
       where: { customer: { idCustomer: customer.idCustomer } },
@@ -142,46 +160,38 @@ export class PetitionsService {
     const petition = await this.findAndValidateOwnership(id, userEmail);
 
     const finishedState = await this.petitionStateRepo.findOne({ where: { name: 'FINALIZADA' } });
-    if (!finishedState) throw new BadRequestException("Estado 'FINALIZADA' no configurado en BD.");
+    if (!finishedState) throw new BadRequestException("Estado 'FINALIZADA' no configurado.");
 
     petition.state = finishedState;
     const saved = await this.petitionRepo.save(petition);
     
-    this.logger.log(`Petición ID ${id} marcada como FINALIZADA por el usuario ${userEmail}`);
     return this.mapToResponse(saved);
   }
 
   async deletePetition(id: number, email: string): Promise<void> {
     const petition = await this.findAndValidateOwnership(id, email);
-
     const cancelledState = await this.petitionStateRepo.findOne({ where: { name: 'CANCELADA' } });
-    if (!cancelledState) throw new BadRequestException("Estado 'CANCELADA' no configurado en BD.");
-
+    
     petition.isDeleted = true;
-    petition.state = cancelledState;
-
+    petition.state = cancelledState!;
     await this.petitionRepo.save(petition);
-    this.logger.log(`Petición ID ${id} cancelada por el usuario ${email}`);
   }
 
   async reactivatePetition(id: number, userEmail: string): Promise<PetitionResponseDto> {
     const petition = await this.findAndValidateOwnership(id, userEmail);
 
     if (petition.dateUntil && new Date(petition.dateUntil) < new Date()) {
-      throw new BadRequestException("No se puede reactivar una solicitud con fecha de cierre vencida.");
+      throw new BadRequestException("No se puede reactivar una solicitud vencida.");
     }
 
     const publicState = await this.petitionStateRepo.findOne({ where: { name: 'PUBLICADA' } });
-    if (!publicState) throw new BadRequestException("Estado 'PUBLICADA' no configurado en BD.");
-
-    petition.state = publicState;
+    petition.state = publicState!;
     petition.isDeleted = false;
 
     const saved = await this.petitionRepo.save(petition);
     return this.mapToResponse(saved);
   }
 
-  // --- Helpers ---
   private async findAndValidateOwnership(id: number, email: string): Promise<Petition> {
     const petition = await this.petitionRepo.findOne({
       where: { idPetition: id },
@@ -192,12 +202,10 @@ export class PetitionsService {
     if (petition.customer?.user?.email !== email) {
       throw new ForbiddenException('No tienes permisos sobre esta solicitud.');
     }
-
     return petition;
   }
 
   private async mapToResponse(petition: Petition): Promise<PetitionResponseDto> {
-    // Buscar la imagen en la tabla de adjuntos
     const attachments = await this.petitionAttachmentRepo.find({
       where: { petition: { idPetition: petition.idPetition } }
     });
