@@ -24,7 +24,7 @@ export class Notification {
   @Column({ name: 'is_read', type: 'boolean', default: false })
   isRead: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @Column({ name: 'created_at', type: 'timestamp' }) // Lo pasamos a columna normal
   createdAt: Date;
 
   @Column({ name: 'read_at', type: 'datetime', nullable: true })

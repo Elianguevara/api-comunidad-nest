@@ -132,6 +132,7 @@ export class NotificationsService {
 
     await this.emitUnreadCount(user.idUser);
   }
+  
   async notifyPostulationRejected(postulation: Postulation) {
     const providerUser = postulation.provider.user;
     await this.createNotification(
@@ -161,10 +162,12 @@ export class NotificationsService {
       title,
       message,
       notificationType: type,
-      metadata: link,
+      // AQUÍ ESTÁ LA CORRECCIÓN CLAVE: usamos undefined en vez de null
+      metadata: link ? JSON.stringify({ url: link }) : undefined, 
       relatedPetition: petition,
       relatedPostulation: postulation,
       isRead: false,
+      createdAt: new Date(),
     });
 
     const savedNotification = await this.notificationRepo.save(notification);
@@ -194,7 +197,7 @@ export class NotificationsService {
       isRead: n.isRead,
       createdAt: n.createdAt,
       readAt: n.readAt,
-      metadata: n.metadata,
+      metadata: n.metadata, // En el frontend se recibe como un string, ej: '{"url":"/feed"}'
     };
   }
 }

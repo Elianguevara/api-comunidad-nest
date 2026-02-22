@@ -1,9 +1,9 @@
 {
   "type": "mysql",
-  "host": "localhost",
+  "host": "ies9021.edu.ar",
   "port": 3306,
-  "username": "root",
-  "password": "Chack689",
+  "username": "ies9021_userdb",
+  "password": "Xsw23edc.2025",
   "database": "ies9021_coco",
   "entities": ["dist/**/*.entity.js"]
 }

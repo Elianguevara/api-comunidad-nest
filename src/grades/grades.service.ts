@@ -74,6 +74,9 @@ export class GradesService {
       rating: request.rating,
       comment: request.comment,
       isVisible: true,
+      
+      // AQUÍ SÍ LO DEJAMOS: GradeProvider lo necesita para la tabla n_grade_provider
+      grade: { idGrade: request.rating } as any, 
     });
 
     await this.gradeProviderRepo.save(review);
@@ -125,6 +128,8 @@ export class GradesService {
       rating: request.rating,
       comment: request.comment,
       isVisible: true,
+      
+      // ELIMINADO: GradeCustomer no tiene relación con id_grade, solo usa la columna rating
     });
 
     await this.gradeCustomerRepo.save(review);
@@ -223,8 +228,8 @@ export class GradesService {
     const result = {
       canRate: false,
       hasRated: false,
-      customerId: null as number | null, // <-- Le decimos que puede ser number o null
-      customerName: null as string | null, // <-- Le decimos que puede ser string o null
+      customerId: null as number | null, 
+      customerName: null as string | null, 
     };
 
     const user = await this.userRepo.findOne({ where: { email } });

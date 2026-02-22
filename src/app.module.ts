@@ -33,7 +33,11 @@ import { MediaModule } from './media/media.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         autoLoadEntities: true,
-        synchronize: true, // Solo desarrollo
+        
+        // APAGADO para evitar conflictos con la base de datos compartida
+        // y prevenir el error "Duplicate entry '' for key"
+        synchronize: false, 
+        
         timezone: '-03:00', // Fuerza a Mendoza/Argentina
       }),
     }),
