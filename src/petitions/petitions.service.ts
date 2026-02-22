@@ -10,6 +10,7 @@ import { Customer } from '../users/entities/customer.entity';
 import { User } from '../users/entities/user.entity';
 import { Profession } from '../metadata/entities/profession.entity';
 import { City } from '../metadata/entities/city.entity';
+import { Postulation } from '../postulations/entities/postulation.entity';
 
 import { PetitionRequestDto } from './dto/petition.request.dto';
 import { PetitionResponseDto } from './dto/petition.response.dto';
@@ -28,6 +29,7 @@ export class PetitionsService {
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(Profession) private professionRepo: Repository<Profession>,
     @InjectRepository(City) private cityRepo: Repository<City>,
+    @InjectRepository(Postulation) private postulationRepo: Repository<Postulation>,
     private readonly notificationsService: NotificationsService, // <-- INYECTADO
   ) {}
 
@@ -170,23 +172,41 @@ export class PetitionsService {
 
   async deletePetition(id: number, email: string): Promise<void> {
     const petition = await this.findAndValidateOwnership(id, email);
+    if (petition.state?.name !== 'PUBLICADA') {
+      throw new BadRequestException('Solo puedes cancelar solicitudes en estado PUBLICADA.');
+    }
+
+    const postulationsCount = await this.postulationRepo.count({
+      where: {
+        petition: { idPetition: petition.idPetition },
+        isDeleted: false,
+      },
+    });
+    if (postulationsCount > 0) {
+      throw new BadRequestException('No puedes cancelar una solicitud que ya tiene postulaciones.');
+    }
+
     const cancelledState = await this.petitionStateRepo.findOne({ where: { name: 'CANCELADA' } });
+    if (!cancelledState) throw new BadRequestException("Estado 'CANCELADA' no configurado.");
     
     petition.isDeleted = true;
-    petition.state = cancelledState!;
+    petition.state = cancelledState;
     await this.petitionRepo.save(petition);
   }
 
   async reactivatePetition(id: number, userEmail: string): Promise<PetitionResponseDto> {
     const petition = await this.findAndValidateOwnership(id, userEmail);
 
-    if (petition.dateUntil && new Date(petition.dateUntil) < new Date()) {
-      throw new BadRequestException("No se puede reactivar una solicitud vencida.");
+    if (petition.state?.name !== 'CANCELADA') {
+      throw new BadRequestException('Solo se pueden reactivar solicitudes canceladas.');
     }
 
     const publicState = await this.petitionStateRepo.findOne({ where: { name: 'PUBLICADA' } });
-    petition.state = publicState!;
+    if (!publicState) throw new BadRequestException("Estado 'PUBLICADA' no configurado.");
+
+    petition.state = publicState;
     petition.isDeleted = false;
+    petition.dateSince = new Date();
 
     const saved = await this.petitionRepo.save(petition);
     return this.mapToResponse(saved);

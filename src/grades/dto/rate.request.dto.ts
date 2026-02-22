@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 export class RateRequestDto {
   @IsNotEmpty({ message: 'El ID del objetivo (Usuario a calificar) es obligatorio' })
@@ -17,5 +17,6 @@ export class RateRequestDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(255, { message: 'El comentario no puede superar los 255 caracteres' })
   comment?: string;
 }

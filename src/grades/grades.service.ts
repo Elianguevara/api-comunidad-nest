@@ -23,6 +23,10 @@ export class GradesService {
     @InjectRepository(Postulation) private postulationRepo: Repository<Postulation>,
   ) {}
 
+  private normalizeComment(comment?: string): string {
+    return (comment ?? '').trim();
+  }
+
   async rateProvider(email: string, request: RateRequestDto): Promise<void> {
     const user = await this.userRepo.findOne({ where: { email } });
     if (!user) throw new NotFoundException('Usuario no encontrado.');
@@ -67,12 +71,15 @@ export class GradesService {
     }
 
     // Crear calificación
+    const normalizedComment = this.normalizeComment(request.comment);
+
     const review = this.gradeProviderRepo.create({
       customer,
       provider,
       petition,
       rating: request.rating,
-      comment: request.comment,
+      comment: normalizedComment,
+      response: null,
       isVisible: true,
       
       // AQUÍ SÍ LO DEJAMOS: GradeProvider lo necesita para la tabla n_grade_provider
@@ -121,12 +128,15 @@ export class GradesService {
       throw new ForbiddenException('No estás autorizado a calificar a este cliente en este trabajo.');
     }
 
+    const normalizedComment = this.normalizeComment(request.comment);
+
     const review = this.gradeCustomerRepo.create({
       provider,
       customer,
       petition,
       rating: request.rating,
-      comment: request.comment,
+      comment: normalizedComment || null,
+      response: null,
       isVisible: true,
       
       // ELIMINADO: GradeCustomer no tiene relación con id_grade, solo usa la columna rating
@@ -148,7 +158,7 @@ export class GradesService {
       idReview: r.idGradeProvider,
       reviewerName: r.customer?.user?.name || 'Usuario',
       rating: r.rating,
-      comment: r.comment,
+      comment: r.comment ?? '',
       date: r.createdDate || new Date(),
     }));
 
@@ -193,7 +203,7 @@ export class GradesService {
         ? `${r.provider.user.name} ${r.provider.user.lastname}`.trim()
         : 'Usuario',
       rating: r.rating,
-      comment: r.comment,
+      comment: r.comment ?? '',
       date: r.createdDate || new Date(),
     }));
 

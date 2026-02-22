@@ -23,11 +23,11 @@ export class GradeCustomer {
   @Column({ type: 'int', nullable: true })
   rating: number;
 
-  @Column({ type: 'text', nullable: true })
-  comment: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  comment: string | null;
 
-  @Column({ type: 'text', nullable: true })
-  response: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  response: string | null;
 
   @Column({ name: 'is_visible', type: 'boolean', default: true })
   isVisible: boolean;

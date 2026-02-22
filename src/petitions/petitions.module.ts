@@ -10,6 +10,7 @@ import { Customer } from '../users/entities/customer.entity';
 import { User } from '../users/entities/user.entity';
 import { Profession } from '../metadata/entities/profession.entity';
 import { City } from '../metadata/entities/city.entity';
+import { Postulation } from '../postulations/entities/postulation.entity';
 import { NotificationsModule } from '../notifications/notifications.module'; // <-- IMPORTANTE
 
 @Module({
@@ -22,7 +23,8 @@ import { NotificationsModule } from '../notifications/notifications.module'; // 
       Customer, 
       User, 
       Profession, 
-      City
+      City,
+      Postulation,
     ]),
     NotificationsModule, // <-- AGREGA ESTO AQUÍ
   ],

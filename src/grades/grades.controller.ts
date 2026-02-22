@@ -20,15 +20,14 @@ export class GradesController {
   constructor(private readonly gradesService: GradesService) {}
 
   @Post('rate-provider')
-  rateProvider(@Request() req, @Body() request: RateRequestDto) {
-    // Al igual que en Java devolvemos un string, pero en JSON para React
-    this.gradesService.rateProvider(req.user.email, request);
+  async rateProvider(@Request() req, @Body() request: RateRequestDto) {
+    await this.gradesService.rateProvider(req.user.email, request);
     return { message: "Calificación enviada con éxito." };
   }
 
   @Post('rate-customer')
-  rateCustomer(@Request() req, @Body() request: RateRequestDto) {
-    this.gradesService.rateCustomer(req.user.email, request);
+  async rateCustomer(@Request() req, @Body() request: RateRequestDto) {
+    await this.gradesService.rateCustomer(req.user.email, request);
     return { message: "Calificación enviada con éxito." };
   }
 

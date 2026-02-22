@@ -28,12 +28,11 @@ export class GradeProvider {
   @Column({ type: 'int', nullable: true })
   rating: number;
 
-  // ¡ATENCIÓN AQUÍ! Mapeamos explícitamente a "coment" como estaba en Java
-  @Column({ name: 'coment', type: 'text', nullable: true })
+  @Column({ name: 'coment', type: 'varchar', length: 255, nullable: false })
   comment: string;
 
-  @Column({ type: 'text', nullable: true })
-  response: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  response: string | null;
 
   @Column({ name: 'is_visible', type: 'boolean', default: true })
   isVisible: boolean;
