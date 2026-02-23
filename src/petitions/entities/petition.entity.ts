@@ -1,9 +1,10 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { TypePetition } from './type-petition.entity'; // Asumo que lo tienes
+import { TypePetition } from './type-petition.entity'; 
 import { Customer } from '../../users/entities/customer.entity';
 import { City } from '../../metadata/entities/city.entity';
 import { Profession } from '../../metadata/entities/profession.entity';
 import { PetitionState } from './petition-state.entity';
+import { TypeProvider } from 'src/metadata/entities/type-provider.entity';
 
 @Entity({ name: 'n_petition' })
 export class Petition {
@@ -29,10 +30,10 @@ export class Petition {
   @JoinColumn({ name: 'id_profession' })
   profession: Profession;
 
-  // Si tienes la entidad TypeProvider, puedes descomentarla:
-  // @ManyToOne(() => TypeProvider)
-  // @JoinColumn({ name: 'id_type_provider' })
-  // typeProvider: TypeProvider;
+  
+  @ManyToOne(() => TypeProvider)
+  @JoinColumn({ name: 'id_type_provider' })
+  typeProvider: TypeProvider;
 
   @ManyToOne(() => PetitionState)
   @JoinColumn({ name: 'id_state' })

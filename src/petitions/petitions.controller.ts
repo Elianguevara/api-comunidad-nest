@@ -54,7 +54,7 @@ export class PetitionsController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT) // Retorna 204 como en Java
+  @HttpCode(HttpStatus.NO_CONTENT) // Retorna 204 
   async deletePetition(@Request() req, @Param('id', ParseIntPipe) id: number) {
     await this.petitionService.deletePetition(id, req.user.email);
   }

@@ -14,7 +14,7 @@ import { Postulation } from '../postulations/entities/postulation.entity';
 
 import { PetitionRequestDto } from './dto/petition.request.dto';
 import { PetitionResponseDto } from './dto/petition.response.dto';
-import { NotificationsService } from '../notifications/notifications.service'; // <-- IMPORTADO
+import { NotificationsService } from '../notifications/notifications.service'; 
 
 @Injectable()
 export class PetitionsService {
@@ -30,7 +30,7 @@ export class PetitionsService {
     @InjectRepository(Profession) private professionRepo: Repository<Profession>,
     @InjectRepository(City) private cityRepo: Repository<City>,
     @InjectRepository(Postulation) private postulationRepo: Repository<Postulation>,
-    private readonly notificationsService: NotificationsService, // <-- INYECTADO
+    private readonly notificationsService: NotificationsService, 
   ) {}
 
   async createPetition(email: string, request: PetitionRequestDto): Promise<PetitionResponseDto> {
