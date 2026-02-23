@@ -19,7 +19,7 @@ export class PetitionRequestDto {
   idCity: number;
 
   @IsOptional()
-  dateUntil?: string; // En React usualmente llega como string ISO (YYYY-MM-DD)
+  dateUntil?: string; // Usualmente llega como string ISO (YYYY-MM-DD)
 
   @IsOptional()
   @IsString()
