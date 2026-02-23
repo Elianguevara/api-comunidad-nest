@@ -36,7 +36,7 @@ import { MediaModule } from './media/media.module';
         
         // APAGADO para evitar conflictos con la base de datos compartida
         // y prevenir el error "Duplicate entry '' for key"
-        synchronize: false, 
+        synchronize: false, // Solo para desarrollo, no usar en producción 
         
         timezone: '-03:00', // Fuerza a Mendoza/Argentina
       }),
